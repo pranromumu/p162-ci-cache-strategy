@@ -1,0 +1,41 @@
+name: CI Cache Strategy
+
+on: [push]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        id: setup-python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: requirements.txt
+
+      - name: Report Cache Status
+        if: ${{ steps.setup-python.outputs.cache-hit == 'true' }}
+        run: |
+          echo "## Dependency Cache" >> $GITHUB_STEP_SUMMARY
+          echo "Cache was restored successfully. ✅" >> $GITHUB_STEP_SUMMARY
+
+      - name: Report Cache Miss
+        if: ${{ steps.setup-python.outputs.cache-hit != 'true' }}
+        run: |
+          echo "## Dependency Cache" >> $GITHUB_STEP_SUMMARY
+          echo "No previous cache was restored. ⚠️" >> $GITHUB_STEP_SUMMARY
+
+      - name: Install dependencies
+        run: |
+          echo "Starting dependency installation..."
+          START=$(date +%s)
+          pip install -r requirements.txt
+          END=$(date +%s)
+          echo "Dependency installation time: $((END - START)) seconds"
+
+      - name: Run Pytest
+        run: pytest -v -s
